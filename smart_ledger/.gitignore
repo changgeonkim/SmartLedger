@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# API keys (절대 커밋하지 않는 파일)
+lib/core/config/app_config.dart
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist

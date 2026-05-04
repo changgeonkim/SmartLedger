@@ -1,0 +1,8 @@
+{
+  "_comment": "실제 Firebase 프로젝트 설정값으로 교체하세요. google-services.json / GoogleService-Info.plist 파일을 각 플랫폼 폴더에 추가해야 합니다.",
+  "projectId": "YOUR_PROJECT_ID",
+  "appId": "YOUR_APP_ID",
+  "storageBucket": "YOUR_PROJECT_ID.appspot.com",
+  "apiKey": "YOUR_API_KEY",
+  "messagingSenderId": "YOUR_SENDER_ID"
+}
