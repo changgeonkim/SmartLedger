@@ -3,7 +3,9 @@ import '../../core/constants/app_colors.dart';
 import 'receipt_handler.dart';
 
 class ReceiptUploadScreen extends StatelessWidget {
-  const ReceiptUploadScreen({super.key});
+  final VoidCallback? onManualEntry;
+
+  const ReceiptUploadScreen({super.key, this.onManualEntry});
 
   @override
   Widget build(BuildContext context) {
@@ -22,10 +24,7 @@ class ReceiptUploadScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            const Text('영수증 입력', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            const Text('영수증을 촬영하거나 갤러리에서 선택하세요',
-                style: TextStyle(color: AppColors.textSecondary)),
+            const Text('내역 추가', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 32),
             Row(
               children: [
@@ -39,7 +38,7 @@ class ReceiptUploadScreen extends StatelessWidget {
                     },
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: _OptionButton(
                     icon: Icons.photo_library_outlined,
@@ -47,6 +46,17 @@ class ReceiptUploadScreen extends StatelessWidget {
                     onTap: () {
                       Navigator.pop(context);
                       ReceiptHandler.fromGallery(context);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _OptionButton(
+                    icon: Icons.edit_outlined,
+                    label: '수동 입력',
+                    onTap: () {
+                      Navigator.pop(context);
+                      onManualEntry?.call();
                     },
                   ),
                 ),

@@ -8,7 +8,11 @@ class ExpenseService {
   Future<List<ExpenseModel>> fetchByMonth(DateTime month, String userId) async {
     final start = DateTime(month.year, month.month, 1);
     final end = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
+    return fetchByDateRange(start, end, userId);
+  }
 
+  Future<List<ExpenseModel>> fetchByDateRange(
+      DateTime start, DateTime end, String userId) async {
     final snap = await _col
         .where('paymentDate', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
         .where('paymentDate', isLessThanOrEqualTo: Timestamp.fromDate(end))

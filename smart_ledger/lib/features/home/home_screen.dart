@@ -16,11 +16,14 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final year = ref.watch(selectedYearProvider);
     final month = ref.watch(selectedMonthProvider);
+    final day = ref.watch(selectedDateProvider);
+    final mode = ref.watch(selectedViewModeProvider);
     final expenseAsync = ref.watch(expenseListProvider);
     final totalAsync = ref.watch(expenseTotalProvider);
     final incomeAsync = ref.watch(incomeTotalProvider);
-    final budgetsAsync = ref.watch(categoryBudgetsProvider(month));
+    final budgetsAsync = ref.watch(categoryBudgetsProvider(ref.watch(selectedMonthDateProvider)));
 
     final totalBudget = budgetsAsync.valueOrNull
             ?.fold(0.0, (sum, b) => sum + b.amount) ??
@@ -29,33 +32,25 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: GestureDetector(
-          onTap: () => _pickMonth(context, ref, month),
+          onTap: () => _pickDate(context, ref, year, month, day),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(AppDateUtils.formatMonth(month), style: AppTextStyles.heading2),
+              Text(_formatDateLabel(year, month, day, mode), style: AppTextStyles.heading2),
               const Icon(Icons.arrow_drop_down),
             ],
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ExpenseEditScreen()),
-            ).then((_) => ref.invalidate(expenseListProvider)),
-          ),
-        ],
       ),
       body: Column(
         children: [
+          const _ViewModeToggle(),
           _SummaryCard(totalAsync: totalAsync, incomeAsync: incomeAsync, totalBudget: totalBudget),
           Expanded(
             child: expenseAsync.when(
               data: (list) {
                 if (list.isEmpty) {
-                  return const Center(child: Text('이번 달 내역이 없어요'));
+                  return const Center(child: Text('해당 기간 내역이 없어요'));
                 }
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -75,31 +70,94 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => showModalBottomSheet(
           context: context,
-          builder: (_) => const ReceiptUploadScreen(),
+          builder: (_) => ReceiptUploadScreen(
+            onManualEntry: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ExpenseEditScreen()),
+            ).then((_) => ref.invalidate(expenseListProvider)),
+          ),
         ),
-        icon: const Icon(Icons.document_scanner_outlined),
-        label: const Text('영수증 스캔'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
       ),
     );
   }
 
-  Future<void> _pickMonth(BuildContext context, WidgetRef ref, DateTime current) async {
+  String _formatDateLabel(int year, int month, int day, ViewMode mode) {
+    return switch (mode) {
+      ViewMode.year => '$year년',
+      ViewMode.month => '$year년 ${month.toString().padLeft(2, '0')}월',
+      ViewMode.day =>
+        '$year년 ${month.toString().padLeft(2, '0')}월 ${day.toString().padLeft(2, '0')}일',
+    };
+  }
+
+  Future<void> _pickDate(
+      BuildContext context, WidgetRef ref, int year, int month, int day) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: current,
+      initialDate: DateTime(year, month, day),
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
       initialEntryMode: DatePickerEntryMode.calendarOnly,
     );
-    if (picked != null) {
-      ref.read(selectedMonthProvider.notifier).state =
-          DateTime(picked.year, picked.month);
-    }
+    if (picked == null) return;
+
+    ref.read(selectedYearProvider.notifier).state = picked.year;
+    ref.read(selectedMonthProvider.notifier).state = picked.month;
+    ref.read(selectedDateProvider.notifier).state = picked.day;
+  }
+}
+
+class _ViewModeToggle extends ConsumerWidget {
+  const _ViewModeToggle();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(selectedViewModeProvider);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+      child: Row(
+        children: ViewMode.values.map((m) {
+          final label = switch (m) {
+            ViewMode.year => '연도별',
+            ViewMode.month => '월별',
+            ViewMode.day => '일별',
+          };
+          final selected = mode == m;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => ref.read(selectedViewModeProvider.notifier).state = m,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.primary : Colors.transparent,
+                  border: Border.all(
+                    color: selected ? AppColors.primary : AppColors.border,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                    color: selected ? Colors.white : AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 }
 
@@ -136,7 +194,7 @@ class _SummaryCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('이번 달 지출', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                  const Text('지출', style: TextStyle(color: Colors.white70, fontSize: 14)),
                   const SizedBox(height: 4),
                   Text(
                     FormatUtils.formatWon(total),
@@ -147,7 +205,7 @@ class _SummaryCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text('이번 달 수입', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                  const Text('수입', style: TextStyle(color: Colors.white70, fontSize: 14)),
                   const SizedBox(height: 4),
                   Text(
                     FormatUtils.formatWon(income),

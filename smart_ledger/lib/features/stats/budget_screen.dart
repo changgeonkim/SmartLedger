@@ -14,7 +14,7 @@ class BudgetScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final month = ref.watch(selectedMonthProvider);
+    final month = ref.watch(selectedMonthDateProvider);
     final categoriesAsync = ref.watch(categoryListProvider);
     final budgetsAsync = ref.watch(categoryBudgetsProvider(month));
     final expenseAsync = ref.watch(expenseListProvider);

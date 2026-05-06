@@ -15,7 +15,7 @@ class StatsScreen extends StatelessWidget {
           title: const Text('통계'),
           bottom: const TabBar(
             tabs: [
-              Tab(text: '분석'),
+              Tab(text: '통계'),
               Tab(text: '예산'),
             ],
             indicatorColor: AppColors.primary,

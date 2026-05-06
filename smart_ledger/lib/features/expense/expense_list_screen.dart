@@ -30,27 +30,39 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
       }
     });
 
-    final month = ref.watch(selectedMonthProvider);
+    final monthDate = ref.watch(selectedMonthDateProvider);
     final expenseAsync = ref.watch(expenseListProvider);
     final categoriesAsync = ref.watch(categoryListProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppDateUtils.formatMonth(month)),
+        title: Text(AppDateUtils.formatMonth(monthDate)),
         actions: [
           IconButton(
             icon: const Icon(Icons.chevron_left),
             onPressed: () {
-              ref.read(selectedMonthProvider.notifier).state =
-                  DateTime(month.year, month.month - 1);
+              final y = ref.read(selectedYearProvider);
+              final m = ref.read(selectedMonthProvider);
+              if (m == 1) {
+                ref.read(selectedYearProvider.notifier).state = y - 1;
+                ref.read(selectedMonthProvider.notifier).state = 12;
+              } else {
+                ref.read(selectedMonthProvider.notifier).state = m - 1;
+              }
               setState(() => _selectedCategoryId = null);
             },
           ),
           IconButton(
             icon: const Icon(Icons.chevron_right),
             onPressed: () {
-              ref.read(selectedMonthProvider.notifier).state =
-                  DateTime(month.year, month.month + 1);
+              final y = ref.read(selectedYearProvider);
+              final m = ref.read(selectedMonthProvider);
+              if (m == 12) {
+                ref.read(selectedYearProvider.notifier).state = y + 1;
+                ref.read(selectedMonthProvider.notifier).state = 1;
+              } else {
+                ref.read(selectedMonthProvider.notifier).state = m + 1;
+              }
               setState(() => _selectedCategoryId = null);
             },
           ),
@@ -64,6 +76,10 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
 
           final expenseTotal = filtered
               .where((e) => e.paymentType == PaymentType.expense)
+              .fold(0.0, (sum, e) => sum + e.amount);
+
+          final incomeTotal = filtered
+              .where((e) => e.paymentType == PaymentType.income)
               .fold(0.0, (sum, e) => sum + e.amount);
 
           final grouped = <String, List<ExpenseModel>>{};
@@ -106,15 +122,38 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
                 color: AppColors.surface,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      _selectedCategoryId == null
-                          ? '총 지출'
-                          : '${categoriesAsync.valueOrNull?.firstWhere((c) => c.id == _selectedCategoryId, orElse: () => categoriesAsync.valueOrNull!.first).name} 지출',
-                      style: AppTextStyles.bodySecondary,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('총 수입', style: AppTextStyles.bodySecondary),
+                          const SizedBox(height: 2),
+                          Text(
+                            FormatUtils.formatWon(incomeTotal),
+                            style: AppTextStyles.amount.copyWith(color: AppColors.income),
+                          ),
+                        ],
+                      ),
                     ),
-                    Text(FormatUtils.formatWon(expenseTotal), style: AppTextStyles.amount),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            _selectedCategoryId == null
+                                ? '총 지출'
+                                : '${categoriesAsync.valueOrNull?.firstWhere((c) => c.id == _selectedCategoryId, orElse: () => categoriesAsync.valueOrNull!.first).name} 지출',
+                            style: AppTextStyles.bodySecondary,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            FormatUtils.formatWon(expenseTotal),
+                            style: AppTextStyles.amount.copyWith(color: AppColors.expense),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),

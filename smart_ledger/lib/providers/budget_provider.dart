@@ -13,13 +13,13 @@ final categoryBudgetsProvider =
 class BudgetNotifier extends AutoDisposeAsyncNotifier<List<BudgetModel>> {
   @override
   Future<List<BudgetModel>> build() async {
-    final month = ref.watch(selectedMonthProvider);
+    final month = ref.watch(selectedMonthDateProvider);
     return ref.watch(categoryBudgetsProvider(month).future);
   }
 
   Future<void> save(String categoryId, double amount) async {
     final userId = ref.read(userIdProvider);
-    final month = ref.read(selectedMonthProvider);
+    final month = ref.read(selectedMonthDateProvider);
     final budget = BudgetModel(
       id: BudgetModel.docId(categoryId, month.year, month.month),
       categoryId: categoryId,
@@ -34,7 +34,7 @@ class BudgetNotifier extends AutoDisposeAsyncNotifier<List<BudgetModel>> {
   }
 
   Future<void> delete(String categoryId) async {
-    final month = ref.read(selectedMonthProvider);
+    final month = ref.read(selectedMonthDateProvider);
     await BudgetService().delete(categoryId, month.year, month.month);
     ref.invalidate(categoryBudgetsProvider(month));
   }

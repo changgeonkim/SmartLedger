@@ -4,6 +4,8 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../models/category_model.dart';
 import '../../providers/category_provider.dart';
+import '../../providers/expense_provider.dart';
+import '../../providers/navigation_provider.dart';
 
 class CategoryManageScreen extends ConsumerWidget {
   const CategoryManageScreen({super.key});
@@ -64,13 +66,17 @@ class CategoryManageScreen extends ConsumerWidget {
             children: [
               TextField(
                 controller: nameCtrl,
+                autofocus: true,
                 decoration: const InputDecoration(
                   labelText: '카테고리 이름',
                   hintText: '예: 커피, 헬스장',
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('색상 선택', style: AppTextStyles.caption),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text('색상 선택', style: AppTextStyles.caption),
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -111,23 +117,37 @@ class CategoryManageScreen extends ConsumerWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref, CategoryModel cat) async {
-    final ok = await showDialog<bool>(
+    final result = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('카테고리 삭제'),
-        content: Text('"${cat.name}" 카테고리를 삭제할까요?'),
+        content: const Text(
+          '이 카테고리를 삭제하면 포함된 모든 기록이 함께 삭제됩니다.\n'
+          '다른 카테고리로 이동하시겠습니까, 아니면 그대로 삭제하시겠습니까?',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('취소')),
+            onPressed: () => Navigator.pop(context, 'cancel'),
+            child: const Text('취소'),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('삭제', style: TextStyle(color: AppColors.expense))),
+            onPressed: () => Navigator.pop(context, 'move'),
+            child: const Text('카테고리 이동'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'delete'),
+            child: const Text('삭제', style: TextStyle(color: AppColors.expense)),
+          ),
         ],
       ),
     );
-    if (ok == true) {
-      await ref.read(categoryNotifierProvider.notifier).delete(cat.id);
+
+    if (result == 'delete') {
+      await ref.read(categoryNotifierProvider.notifier).deleteWithExpenses(cat.id);
+    } else if (result == 'move') {
+      ref.read(selectedCategoryFilterProvider.notifier).state = cat.id;
+      ref.read(selectedTabIndexProvider.notifier).state = 1;
+      if (context.mounted) Navigator.pop(context);
     }
   }
 }
