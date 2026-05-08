@@ -64,11 +64,35 @@ final dailyStatsProvider = Provider.autoDispose<AsyncValue<Map<int, double>>>((r
   });
 });
 
+/// 특정 카테고리의 ViewMode별 소비 흐름 데이터
+final categoryDailyStatsProvider =
+    Provider.autoDispose.family<AsyncValue<Map<int, double>>, String>((ref, categoryId) {
+  final mode = ref.watch(selectedViewModeProvider);
+  return ref.watch(expenseListProvider).whenData((list) {
+    final map = <int, double>{};
+    for (final e in list.where(
+      (e) => e.paymentType == PaymentType.expense && e.categoryId == categoryId,
+    )) {
+      final key = switch (mode) {
+        ViewMode.year => e.paymentDate.month,
+        ViewMode.month || ViewMode.day => e.paymentDate.day,
+      };
+      map[key] = (map[key] ?? 0) + e.amount;
+    }
+    return map;
+  });
+});
+
 class CategoryDelta {
+  final String categoryId;
   final String categoryName;
   final double delta;
 
-  const CategoryDelta({required this.categoryName, required this.delta});
+  const CategoryDelta({
+    required this.categoryId,
+    required this.categoryName,
+    required this.delta,
+  });
 }
 
 /// 현재 월 대비 전월 카테고리 지출 증가분 상위 3개
@@ -106,6 +130,7 @@ final topIncreasedCategoriesProvider =
 
   final deltas = currTotals.entries
       .map((e) => CategoryDelta(
+            categoryId: e.key,
             categoryName: catMap[e.key] ?? '',
             delta: e.value - (prevTotals[e.key] ?? 0),
           ))

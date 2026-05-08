@@ -10,6 +10,8 @@ import '../../providers/budget_provider.dart';
 import '../expense/expense_edit_screen.dart';
 import '../expense/expense_detail_screen.dart';
 import '../receipt/receipt_upload_screen.dart';
+import '../settings/settings_screen.dart';
+import '../../core/widgets/animated_content_switcher.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -29,6 +31,12 @@ class HomeScreen extends ConsumerWidget {
             ?.fold(0.0, (sum, b) => sum + b.amount) ??
         0.0;
 
+    final viewKey = switch (mode) {
+      ViewMode.year => 'y_$year',
+      ViewMode.month => 'm_${year}_$month',
+      ViewMode.day => 'd_${year}_${month}_$day',
+    };
+
     return Scaffold(
       appBar: AppBar(
         title: GestureDetector(
@@ -41,31 +49,43 @@ class HomeScreen extends ConsumerWidget {
             ],
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
           const _ViewModeToggle(),
           _SummaryCard(totalAsync: totalAsync, incomeAsync: incomeAsync, totalBudget: totalBudget),
           Expanded(
-            child: expenseAsync.when(
-              data: (list) {
-                if (list.isEmpty) {
-                  return const Center(child: Text('해당 기간 내역이 없어요'));
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: list.length,
-                  itemBuilder: (_, i) => _ExpenseItem(
-                    expense: list[i],
-                    onTap: () => showDialog(
-                      context: context,
-                      builder: (_) => ExpenseDetailScreen(expense: list[i]),
-                    ).then((_) => ref.invalidate(expenseListProvider)),
-                  ),
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('오류: $e')),
+            child: AnimatedContentSwitcher(
+              viewKey: viewKey,
+              child: expenseAsync.when(
+                data: (list) {
+                  if (list.isEmpty) {
+                    return const Center(child: Text('해당 기간 내역이 없어요'));
+                  }
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: list.length,
+                    itemBuilder: (_, i) => _ExpenseItem(
+                      expense: list[i],
+                      onTap: () => showDialog(
+                        context: context,
+                        builder: (_) => ExpenseDetailScreen(expense: list[i]),
+                      ).then((_) => ref.invalidate(expenseListProvider)),
+                    ),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text('오류: $e')),
+              ),
             ),
           ),
         ],

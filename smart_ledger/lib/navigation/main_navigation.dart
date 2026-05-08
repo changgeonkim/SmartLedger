@@ -4,8 +4,8 @@ import '../core/constants/app_colors.dart';
 import '../features/home/home_screen.dart';
 import '../features/expense/expense_list_screen.dart';
 import '../features/stats/stats_screen.dart';
+import '../features/stats/budget_screen.dart';
 import '../features/map/map_screen.dart';
-import '../features/settings/settings_screen.dart';
 import '../providers/navigation_provider.dart';
 
 class MainNavigation extends ConsumerStatefulWidget {
@@ -23,7 +23,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     ExpenseListScreen(),
     MapScreen(),
     StatsScreen(),
-    SettingsScreen(),
+    BudgetScreen(),
   ];
 
   @override
@@ -66,9 +66,9 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
             label: '통계',
           ),
           NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: '설정',
+            icon: Icon(Icons.wallet_outlined),
+            selectedIcon: Icon(Icons.wallet),
+            label: '예산',
           ),
         ],
       ),

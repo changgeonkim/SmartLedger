@@ -9,4 +9,7 @@ class AppConfig {
 
   // Naver Cloud Platform → Application → Maps → Client ID
   static const naverMapsClientId = 'YOUR_NAVER_MAPS_CLIENT_ID';
+
+  // Naver Cloud Platform → Application → Maps → Client Secret
+  static const naverMapsClientSecret = 'YOUR_NAVER_MAPS_CLIENT_SECRET';
 }
