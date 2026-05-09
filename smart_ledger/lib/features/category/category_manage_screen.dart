@@ -147,7 +147,7 @@ class CategoryManageScreen extends ConsumerWidget {
     } else if (result == 'move') {
       ref.read(selectedCategoryFilterProvider.notifier).state = cat.id;
       ref.read(selectedTabIndexProvider.notifier).state = 1;
-      if (context.mounted) Navigator.pop(context);
+      if (context.mounted) Navigator.popUntil(context, (route) => route.isFirst);
     }
   }
 }
