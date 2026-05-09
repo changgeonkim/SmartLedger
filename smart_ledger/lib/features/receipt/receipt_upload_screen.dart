@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
-import 'receipt_handler.dart';
 
 class ReceiptUploadScreen extends StatelessWidget {
   final VoidCallback? onManualEntry;
+  final VoidCallback? onCamera;
+  final VoidCallback? onGallery;
 
-  const ReceiptUploadScreen({super.key, this.onManualEntry});
+  const ReceiptUploadScreen({super.key, this.onManualEntry, this.onCamera, this.onGallery});
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +35,7 @@ class ReceiptUploadScreen extends StatelessWidget {
                     label: '카메라 촬영',
                     onTap: () {
                       Navigator.pop(context);
-                      ReceiptHandler.fromCamera(context);
+                      onCamera?.call();
                     },
                   ),
                 ),
@@ -45,7 +46,7 @@ class ReceiptUploadScreen extends StatelessWidget {
                     label: '갤러리 선택',
                     onTap: () {
                       Navigator.pop(context);
-                      ReceiptHandler.fromGallery(context);
+                      onGallery?.call();
                     },
                   ),
                 ),

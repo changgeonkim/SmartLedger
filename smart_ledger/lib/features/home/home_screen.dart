@@ -9,6 +9,7 @@ import '../../providers/expense_provider.dart';
 import '../../providers/budget_provider.dart';
 import '../expense/expense_edit_screen.dart';
 import '../expense/expense_detail_screen.dart';
+import '../receipt/receipt_handler.dart';
 import '../receipt/receipt_upload_screen.dart';
 import '../settings/settings_screen.dart';
 import '../../core/widgets/animated_content_switcher.dart';
@@ -94,6 +95,8 @@ class HomeScreen extends ConsumerWidget {
         onPressed: () => showModalBottomSheet(
           context: context,
           builder: (_) => ReceiptUploadScreen(
+            onCamera: () => ReceiptHandler.fromCamera(context),
+            onGallery: () => ReceiptHandler.fromGallery(context),
             onManualEntry: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ExpenseEditScreen()),

@@ -10,12 +10,12 @@ class ReceiptHandler {
 
   static Future<void> fromCamera(BuildContext context) async {
     final picked = await _picker.pickImage(source: ImageSource.camera, imageQuality: 85);
-    if (picked != null) await _process(context, File(picked.path));
+    if (picked != null && context.mounted) await _process(context, File(picked.path));
   }
 
   static Future<void> fromGallery(BuildContext context) async {
     final picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
-    if (picked != null) await _process(context, File(picked.path));
+    if (picked != null && context.mounted) await _process(context, File(picked.path));
   }
 
   static Future<void> _process(BuildContext context, File image) async {
