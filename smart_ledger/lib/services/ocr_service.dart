@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../core/config/app_config.dart';
 
@@ -26,40 +27,41 @@ class OcrItem {
 }
 
 class OcrService {
-  static const _apiUrl = AppConfig.clovaOcrApiUrl;
-  static const _secretKey = AppConfig.clovaOcrSecretKey;
+  static final _apiUrl = AppConfig.clovaOcrApiUrl;
+  static final _secretKey = AppConfig.clovaOcrSecretKey;
 
   Future<OcrResult> recognizeReceipt(File imageFile) async {
     final bytes = await imageFile.readAsBytes();
-    final base64Image = base64Encode(bytes);
+    debugPrint('[OCR] 이미지 읽음: ${bytes.length} bytes');
 
-    final body = jsonEncode({
-      'version': 'V2',
-      'requestId': DateTime.now().millisecondsSinceEpoch.toString(),
-      'timestamp': 0,
-      'images': [
-        {
-          'format': 'jpg',
-          'name': 'receipt',
-          'data': base64Image,
-        }
-      ],
-    });
-
-    final response = await http.post(
-      Uri.parse(_apiUrl),
-      headers: {
-        'Content-Type': 'application/json',
-        'X-OCR-SECRET': _secretKey,
-      },
-      body: body,
+    // image_picker가 imageQuality<100일 때 JPEG로 변환하므로 'jpg' 고정
+    final body = await compute(
+      _buildRequestBody,
+      _OcrRequestParams(bytes: bytes, format: 'jpg'),
     );
+    debugPrint('[OCR] 요청 본문 생성 완료: ${body.length} chars');
+    debugPrint('[OCR] POST → $_apiUrl');
+
+    final response = await http
+        .post(
+          Uri.parse(_apiUrl),
+          headers: {
+            'Content-Type': 'application/json',
+            'X-OCR-SECRET': _secretKey,
+          },
+          body: body,
+        )
+        .timeout(const Duration(seconds: 30));
+    debugPrint('[OCR] 응답 코드: ${response.statusCode}');
 
     if (response.statusCode != 200) {
-      throw Exception('OCR 요청 실패: ${response.statusCode}');
+      throw Exception(
+        'OCR 요청 실패: ${response.statusCode} - ${response.body}',
+      );
     }
 
-    return _parseResponse(jsonDecode(response.body));
+    final decoded = await compute(_decodeJson, response.body);
+    return _parseResponse(decoded);
   }
 
   OcrResult _parseResponse(Map<String, dynamic> json) {
@@ -87,10 +89,23 @@ class OcrService {
     );
   }
 
+  // text 우선, 없으면 formatted.value fallback
+  String _readText(Map<String, dynamic>? node) {
+    if (node == null) return '';
+    final text = node['text'];
+    if (text is String && text.isNotEmpty) return text;
+    final formatted = node['formatted'];
+    if (formatted is Map<String, dynamic>) {
+      final value = formatted['value'];
+      if (value is String) return value;
+    }
+    return '';
+  }
+
   String _extractText(Map<String, dynamic> result, String key) {
     try {
       final field = result[key] as Map<String, dynamic>?;
-      return field?['name']?['text'] as String? ?? '';
+      return _readText(field?['name'] as Map<String, dynamic>?);
     } catch (_) {
       return '';
     }
@@ -99,7 +114,7 @@ class OcrService {
   int _extractAmount(Map<String, dynamic> result, String key) {
     try {
       final field = result[key] as Map<String, dynamic>?;
-      final text = field?['price']?['formatted']?['value'] as String? ?? '0';
+      final text = _readText(field?['price'] as Map<String, dynamic>?);
       return int.tryParse(text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
     } catch (_) {
       return 0;
@@ -126,17 +141,32 @@ class OcrService {
       final subResults = result['subResults'] as List<dynamic>? ?? [];
       final items = <OcrItem>[];
       for (final sub in subResults) {
-        final itemList = (sub as Map<String, dynamic>)['items'] as List<dynamic>? ?? [];
+        final itemList =
+            (sub as Map<String, dynamic>)['items'] as List<dynamic>? ?? [];
         for (final item in itemList) {
           final m = item as Map<String, dynamic>;
-          final name = m['name']?['text'] as String? ?? '';
+          final name = _readText(m['name'] as Map<String, dynamic>?);
+
+          // price.price.{text|formatted.value} 또는 price.{text|formatted.value}
+          // 두 구조를 모두 허용
+          final priceNode = m['price'] as Map<String, dynamic>?;
+          var priceText = '';
+          if (priceNode != null) {
+            final inner = priceNode['price'];
+            if (inner is Map<String, dynamic>) {
+              priceText = _readText(inner);
+            }
+            if (priceText.isEmpty) {
+              priceText = _readText(priceNode);
+            }
+          }
           final price = int.tryParse(
-                  m['price']?['price']?['formatted']?['value']
-                          ?.toString()
-                          .replaceAll(RegExp(r'[^0-9]'), '') ??
-                      '0') ??
+                  priceText.replaceAll(RegExp(r'[^0-9]'), '')) ??
               0;
-          final count = int.tryParse(m['count']?['text']?.toString() ?? '1') ?? 1;
+
+          final count =
+              int.tryParse(_readText(m['count'] as Map<String, dynamic>?)) ??
+                  1;
           items.add(OcrItem(name: name, price: price, count: count));
         }
       }
@@ -145,4 +175,28 @@ class OcrService {
       return [];
     }
   }
+}
+
+class _OcrRequestParams {
+  final Uint8List bytes;
+  final String format;
+  const _OcrRequestParams({required this.bytes, required this.format});
+}
+
+Map<String, dynamic> _decodeJson(String body) =>
+    jsonDecode(body) as Map<String, dynamic>;
+
+String _buildRequestBody(_OcrRequestParams p) {
+  return jsonEncode({
+    'version': 'V2',
+    'requestId': DateTime.now().millisecondsSinceEpoch.toString(),
+    'timestamp': DateTime.now().millisecondsSinceEpoch,
+    'images': [
+      {
+        'format': p.format,
+        'name': 'receipt',
+        'data': base64Encode(p.bytes),
+      }
+    ],
+  });
 }

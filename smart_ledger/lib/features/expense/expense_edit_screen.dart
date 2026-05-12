@@ -229,7 +229,7 @@ class _ExpenseEditScreenState extends ConsumerState<ExpenseEditScreen> {
       userId: userId,
       paymentDate: _date,
       paymentType: _paymentType,
-      amount: double.parse(_amountCtrl.text),
+      amount: double.tryParse(_amountCtrl.text.trim()) ?? 0,
       storeName: _storeNameCtrl.text.trim(),
       memo: _memoCtrl.text.trim(),
       createdAt: widget.existing?.createdAt ?? DateTime.now(),

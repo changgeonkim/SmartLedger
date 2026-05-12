@@ -227,6 +227,7 @@ class _ExpenseListScreenState extends ConsumerState<ExpenseListScreen> {
         error: (e, _) => Center(child: Text('오류: $e')),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'expense_list_fab',
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const ExpenseEditScreen()),

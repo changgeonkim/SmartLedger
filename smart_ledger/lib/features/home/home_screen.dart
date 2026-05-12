@@ -92,6 +92,7 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'home_fab',
         onPressed: () => showModalBottomSheet(
           context: context,
           builder: (_) => ReceiptUploadScreen(

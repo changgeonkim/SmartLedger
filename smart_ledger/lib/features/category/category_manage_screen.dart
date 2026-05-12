@@ -44,6 +44,7 @@ class CategoryManageScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text('오류: $e')),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'category_fab',
         onPressed: () => _showAddDialog(context, ref),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
